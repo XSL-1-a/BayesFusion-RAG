@@ -1,0 +1,189 @@
+# HEA-MRAG DashScope 配置文件
+# 使用阿里云通义千问系列模型
+
+# =============================================================================
+# 项目基本配置
+# =============================================================================
+project:
+  name: "HEA-MRAG"
+  version: "0.1.0"
+  description: "Hierarchical Entity-Aware Multimodal RAG (DashScope)"
+
+# =============================================================================
+# 数据路径配置
+# =============================================================================
+paths:
+  data_dir: "./data"
+  raw_dir: "./data/raw"
+  processed_dir: "./data/processed"
+  embeddings_dir: "./data/embeddings"
+  entity_store_dir: "./data/entity_store"
+  results_dir: "./experiments/results"
+  logs_dir: "./experiments/logs"
+
+# =============================================================================
+# LLM 配置 - DashScope (通义千问)
+# =============================================================================
+llm:
+  provider: "openai"  # 使用OpenAI兼容接口
+  model: "qwen-plus"  # 可选: qwen-turbo, qwen-plus, qwen-max
+  temperature: 0.1
+  max_tokens: 4096
+  api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+# 多模态LLM配置 (用于图像理解)
+multimodal_llm:
+  provider: "openai"
+  model: "qwen-vl-plus"  # 通义千问VL多模态
+  temperature: 0.1
+  max_tokens: 2048
+  api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+# =============================================================================
+# 嵌入模型配置 - DashScope
+# =============================================================================
+embeddings:
+  # 文本嵌入
+  text:
+    provider: "openai"  # 使用OpenAI兼容接口
+    model: "text-embedding-v3"  # DashScope嵌入模型
+    dimension: 1024
+    api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  # 图像嵌入 (使用本地CLIP)
+  image:
+    provider: "clip"
+    model: "clip-vit-large-patch14"
+    dimension: 768
+
+# =============================================================================
+# 文档预处理配置
+# =============================================================================
+preprocessing:
+  pdf_parser:
+    extract_images: true
+    extract_tables: true
+    ocr_enabled: true
+    dpi: 300
+
+  chunking:
+    strategy: "semantic"
+    chunk_size: 1000
+    chunk_overlap: 200
+    min_chunk_size: 100
+
+  image:
+    max_size: [1024, 1024]
+    formats: ["png", "jpg", "jpeg"]
+    generate_summary: true
+
+# =============================================================================
+# 层次化多模态检索配置 (HMR)
+# =============================================================================
+hmr:
+  enabled: true
+  document_level:
+    top_n: 3
+    summary_max_length: 500
+  section_level:
+    top_m: 5
+    include_title: true
+    include_abstract: true
+  element_level:
+    top_k: 4
+    text_weight: 0.5
+    image_weight: 0.5
+
+# =============================================================================
+# 实体感知RAG配置 (EA-RAG)
+# =============================================================================
+entity:
+  enabled: true
+  storage:
+    type: "json"
+    path: "./data/entity_store"
+  entity_types:
+    - "Component"
+    - "Parameter"
+    - "Procedure"
+    - "Constraint"
+    - "Standard"
+    - "Interface"
+  extraction:
+    confidence_threshold: 0.7
+    max_entities_per_chunk: 10
+    extract_relations: true
+
+# =============================================================================
+# 自适应模态融合配置 (AMF)
+# =============================================================================
+amf:
+  enabled: true
+  query_classifier:
+    confidence_threshold: 0.6
+    default_preference: "balanced"
+  k_allocation:
+    text_dominant: [0.75, 0.25]
+    image_dominant: [0.25, 0.75]
+    balanced: [0.5, 0.5]
+  reflection:
+    enabled: true
+    relevance_threshold: 0.5
+  reranker:
+    method: "llm"
+    top_k: 4
+
+# =============================================================================
+# 可追溯答案生成配置 (TAG)
+# =============================================================================
+tag:
+  enabled: true
+  citation:
+    format: "[Source N]"
+    require_evidence: true
+  verification:
+    enabled: true
+    method: "llm"
+  confidence_threshold: 0.7
+
+# =============================================================================
+# 评估配置
+# =============================================================================
+evaluation:
+  metrics:
+    answer_quality:
+      - "answer_correctness"
+      - "answer_relevancy"
+    retrieval_quality:
+      - "context_relevancy"
+      - "mrr"
+      - "ndcg"
+    faithfulness:
+      - "text_faithfulness"
+      - "image_faithfulness"
+      - "hallucination_rate"
+    entity:
+      - "entity_precision"
+      - "entity_recall"
+      - "entity_f1"
+    traceability:
+      - "citation_precision"
+      - "citation_recall"
+      - "evidence_accuracy"
+
+  llm_judge:
+    model: "qwen-plus"
+    temperature: 0.0
+    num_samples: 3
+
+# =============================================================================
+# 实验配置
+# =============================================================================
+experiment:
+  seed: 42
+  num_trials: 3
+  save_intermediate: true
+  baselines:
+    - "no_rag"
+    - "text_only"
+    - "multimodal_clip"
+    - "multimodal_summary"

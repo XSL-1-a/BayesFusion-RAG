@@ -1,0 +1,181 @@
+# HEA-MRAG 本地模型配置
+# 使用本地 Qwen2-VL 多模态模型 + BGE 嵌入，无需 API
+
+# =============================================================================
+# 项目基本配置
+# =============================================================================
+project:
+  name: "HEA-MRAG"
+  version: "0.2.0"
+  description: "Hierarchical Entity-Aware Multimodal RAG (Local, Qwen2-VL)"
+
+# =============================================================================
+# 数据路径配置
+# =============================================================================
+paths:
+  data_dir: "./data"
+  raw_dir: "./data/raw"
+  processed_dir: "./data/processed"
+  embeddings_dir: "./data/local_embeddings"
+  entity_store_dir: "./data/entity_store"
+  results_dir: "./experiments/results"
+  logs_dir: "./experiments/logs"
+
+# =============================================================================
+# LLM 配置 - 本地 Qwen2-VL 多模态模型
+# =============================================================================
+llm:
+  provider: "local_vl"
+  model: "./models/Qwen/Qwen2-VL-7B-Instruct"
+  temperature: 0.1
+  max_tokens: 2048
+
+# 多模态LLM配置 - Qwen2-VL 原生支持多模态
+multimodal_llm:
+  provider: "local_vl"
+  model: "./models/Qwen/Qwen2-VL-7B-Instruct"
+  temperature: 0.1
+  max_tokens: 2048
+
+# =============================================================================
+# 嵌入模型配置 - 本地 BGE-small-zh-v1.5
+# =============================================================================
+embeddings:
+  # 文本嵌入 - 使用本地 BGE-small-zh-v1.5 (512维)
+  text:
+    provider: "huggingface"
+    model: "./models/AI-ModelScope/bge-small-zh-v1.5"
+    dimension: 512
+  # 图像嵌入 - 使用本地 CLIP
+  image:
+    provider: "clip"
+    model: "clip-vit-large-patch14"
+    dimension: 768
+
+# =============================================================================
+# 文档预处理配置
+# =============================================================================
+preprocessing:
+  pdf_parser:
+    extract_images: true
+    extract_tables: true
+    ocr_enabled: true
+    dpi: 300
+
+  chunking:
+    strategy: "semantic"
+    chunk_size: 1000
+    chunk_overlap: 200
+    min_chunk_size: 100
+
+  image:
+    max_size: [1024, 1024]
+    formats: ["png", "jpg", "jpeg"]
+    generate_summary: true  # Qwen2-VL 支持图像理解，可生成摘要
+
+# =============================================================================
+# 层次化多模态检索配置 (HMR)
+# =============================================================================
+hmr:
+  enabled: true
+  document_level:
+    top_n: 3
+    summary_max_length: 500
+  section_level:
+    top_m: 5
+    include_title: true
+    include_abstract: true
+  element_level:
+    top_k: 4
+    text_weight: 0.5  # Qwen2-VL 多模态能力均衡
+    image_weight: 0.5
+
+# =============================================================================
+# 实体感知RAG配置 (EA-RAG)
+# =============================================================================
+entity:
+  enabled: true
+  storage:
+    type: "json"
+    path: "./data/entity_store"
+  entity_types:
+    - "Component"
+    - "Parameter"
+    - "Procedure"
+    - "Constraint"
+    - "Standard"
+    - "Interface"
+  extraction:
+    confidence_threshold: 0.7  # Qwen2-VL 能力更强，恢复标准阈值
+    max_entities_per_chunk: 10
+    extract_relations: true
+
+# =============================================================================
+# 自适应模态融合配置 (AMF)
+# =============================================================================
+amf:
+  enabled: true
+  query_classifier:
+    confidence_threshold: 0.5
+    default_preference: "balanced"  # Qwen2-VL 多模态均衡
+  k_allocation:
+    text_dominant: [0.75, 0.25]
+    image_dominant: [0.4, 0.6]
+    balanced: [0.6, 0.4]
+  reflection:
+    enabled: true  # Qwen2-VL 7B 有足够能力支持反思
+    relevance_threshold: 0.5
+  reranker:
+    method: "llm"  # Qwen2-VL 支持 LLM 重排序
+    top_k: 4
+
+# =============================================================================
+# 可追溯答案生成配置 (TAG)
+# =============================================================================
+tag:
+  enabled: true
+  citation:
+    format: "[Source N]"
+    require_evidence: true
+  verification:
+    enabled: true  # Qwen2-VL 支持引用验证
+    method: "llm"
+  confidence_threshold: 0.7
+
+# =============================================================================
+# 评估配置
+# =============================================================================
+evaluation:
+  metrics:
+    answer_quality:
+      - "answer_correctness"
+      - "answer_relevancy"
+    retrieval_quality:
+      - "context_relevancy"
+      - "mrr"
+      - "ndcg"
+    faithfulness:
+      - "text_faithfulness"
+    entity:
+      - "entity_precision"
+      - "entity_recall"
+      - "entity_f1"
+    traceability:
+      - "citation_precision"
+      - "citation_recall"
+
+  llm_judge:
+    model: "./models/Qwen/Qwen2-VL-7B-Instruct"
+    temperature: 0.0
+    num_samples: 3
+
+# =============================================================================
+# 实验配置
+# =============================================================================
+experiment:
+  seed: 42
+  num_trials: 3
+  save_intermediate: true
+  baselines:
+    - "no_rag"
+    - "text_only"

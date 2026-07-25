@@ -1,0 +1,228 @@
+# HEA-MRAG 默认配置文件
+# Hierarchical Entity-Aware Multimodal RAG Configuration
+
+# =============================================================================
+# 项目基本配置
+# =============================================================================
+project:
+  name: "HEA-MRAG"
+  version: "0.1.0"
+  description: "Hierarchical Entity-Aware Multimodal RAG for Industrial Documents"
+
+# =============================================================================
+# 数据路径配置
+# =============================================================================
+paths:
+  data_dir: "./data"
+  raw_dir: "./data/raw"
+  processed_dir: "./data/processed"
+  embeddings_dir: "./data/embeddings"
+  entity_store_dir: "./data/entity_store"
+  results_dir: "./experiments/results"
+  logs_dir: "./experiments/logs"
+
+# =============================================================================
+# LLM 配置
+# =============================================================================
+llm:
+  provider: "openai"  # openai, anthropic, local
+  model: "gpt-4o"
+  temperature: 0.1
+  max_tokens: 4096
+  api_base: null  # 可选：自定义API地址
+
+# 多模态LLM配置 (用于图像理解)
+multimodal_llm:
+  provider: "openai"
+  model: "gpt-4o"
+  temperature: 0.1
+  max_tokens: 2048
+
+# =============================================================================
+# 嵌入模型配置
+# =============================================================================
+embeddings:
+  # 文本嵌入
+  text:
+    provider: "openai"  # openai, huggingface, local
+    model: "text-embedding-3-large"
+    dimension: 3072
+  # 图像嵌入 (CLIP)
+  image:
+    provider: "openai"  # openai, clip
+    model: "clip-vit-large-patch14"
+    dimension: 768
+
+# =============================================================================
+# 文档预处理配置
+# =============================================================================
+preprocessing:
+  # PDF解析
+  pdf_parser:
+    extract_images: true
+    extract_tables: true
+    ocr_enabled: true
+    dpi: 300
+
+  # 文本分块
+  chunking:
+    strategy: "semantic"  # fixed, semantic, recursive
+    chunk_size: 1000
+    chunk_overlap: 200
+    min_chunk_size: 100
+
+  # 图像处理
+  image:
+    max_size: [1024, 1024]
+    formats: ["png", "jpg", "jpeg"]
+    generate_summary: true
+
+# =============================================================================
+# 层次化多模态检索配置 (HMR)
+# =============================================================================
+hmr:
+  enabled: true
+
+  # Level 1: 文档级
+  document_level:
+    top_n: 3
+    summary_max_length: 500
+
+  # Level 2: 章节级
+  section_level:
+    top_m: 5
+    include_title: true
+    include_abstract: true
+
+  # Level 3: 元素级
+  element_level:
+    top_k: 4
+    text_weight: 0.5
+    image_weight: 0.5
+
+# =============================================================================
+# 实体感知RAG配置 (EA-RAG)
+# =============================================================================
+entity:
+  enabled: true
+
+  # 存储方式
+  storage:
+    type: "json"  # json, neo4j
+    path: "./data/entity_store"
+
+  # Neo4j配置 (可选)
+  neo4j:
+    uri: "bolt://localhost:7687"
+    user: "neo4j"
+    password: ""
+
+  # 实体类型
+  entity_types:
+    - "Component"
+    - "Parameter"
+    - "Procedure"
+    - "Constraint"
+    - "Standard"
+    - "Interface"
+
+  # 抽取配置
+  extraction:
+    confidence_threshold: 0.7
+    max_entities_per_chunk: 10
+    extract_relations: true
+
+# =============================================================================
+# 自适应模态融合配置 (AMF)
+# =============================================================================
+amf:
+  enabled: true
+
+  # 查询分类
+  query_classifier:
+    confidence_threshold: 0.6
+    default_preference: "balanced"
+
+  # k值分配策略
+  k_allocation:
+    text_dominant: [0.75, 0.25]  # [text_ratio, image_ratio]
+    image_dominant: [0.25, 0.75]
+    balanced: [0.5, 0.5]
+
+  # 检索反思
+  reflection:
+    enabled: true
+    relevance_threshold: 0.5
+
+  # 重排序
+  reranker:
+    method: "llm"  # bm25, cross_encoder, llm
+    top_k: 4
+
+# =============================================================================
+# 可追溯答案生成配置 (TAG)
+# =============================================================================
+tag:
+  enabled: true
+
+  # 引用生成
+  citation:
+    format: "[Source N]"
+    require_evidence: true
+
+  # 引用验证
+  verification:
+    enabled: true
+    method: "llm"  # rule, nli, llm
+
+  # 置信度阈值
+  confidence_threshold: 0.7
+
+# =============================================================================
+# 评估配置
+# =============================================================================
+evaluation:
+  # 指标
+  metrics:
+    answer_quality:
+      - "answer_correctness"
+      - "answer_relevancy"
+    retrieval_quality:
+      - "context_relevancy"
+      - "mrr"
+      - "ndcg"
+    faithfulness:
+      - "text_faithfulness"
+      - "image_faithfulness"
+      - "hallucination_rate"
+    entity:
+      - "entity_precision"
+      - "entity_recall"
+      - "entity_f1"
+    traceability:
+      - "citation_precision"
+      - "citation_recall"
+      - "evidence_accuracy"
+
+  # LLM Judge配置
+  llm_judge:
+    model: "gpt-4o"
+    temperature: 0.0
+    num_samples: 3
+
+# =============================================================================
+# 实验配置
+# =============================================================================
+experiment:
+  seed: 42
+  num_trials: 3
+  save_intermediate: true
+
+  # Baseline方法
+  baselines:
+    - "no_rag"
+    - "text_only"
+    - "image_only_clip"
+    - "image_only_summary"
+    - "multimodal_clip"
+    - "multimodal_summary"
