@@ -1,8 +1,8 @@
 # BayesFusion-RAG
 
-BayesFusion-RAG is a portfolio project for industrial and technical document question answering. It combines sparse, dense, multimodal, and entity-aware retrieval experts through adaptive Bayesian fusion, then produces traceable answers with citation verification.
+BayesFusion-RAG is a Bayesian multi-expert retrieval framework for industrial and technical document question answering. It combines sparse, dense, multimodal, and entity-aware retrievers through query-adaptive fusion, then generates traceable answers with citation parsing and verification.
 
-This repository is a project showcase. It contains the implementation and selected reproducibility materials; unpublished manuscript files, private documents, and internal working notes are intentionally excluded.
+The repository includes hierarchical indexing, retrieval fusion, answer generation, evaluation workflows, and local demonstration entry points.
 
 ## Highlights
 
@@ -78,9 +78,9 @@ The repository contains both full benchmark workflows and synthetic fallback dat
 
 Selected figures are included for convenient inspection. Large datasets, embeddings, model weights, private PDFs, and API credentials are intentionally excluded.
 
-## My Contribution
+## Implementation
 
-I designed the retrieval and fusion pipeline, implemented the hierarchical retrieval components, connected entity-aware and multimodal signals, and built the evaluation and demo entry points. The project can be discussed as a standalone resume project without exposing private paper materials.
+The repository implements the retrieval and fusion pipeline, hierarchical document indexing, entity-aware and multimodal retrieval, traceable answer generation, citation verification, and evaluation workflows.
 
 ## Usage Note
 
